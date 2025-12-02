@@ -1,0 +1,73 @@
+export PROJECT_ID=[INSERT PROJECT ID]
+TOKEN=$(gcloud auth print-access-token)
+
+# 2. Set Window (Last 7-14 Days)
+END_TIME=$(date -u -d '7 days ago' +%FT%TZ)
+START_TIME=$(date -u -d '14 days ago' +%FT%TZ)
+
+echo "Step 1: Building Machine Type Dictionary..."
+gcloud compute machine-types list --filter="zone:(us-central1-a)" --format="json(name, guestCpus, memoryMb)" > machine_types.json
+
+echo "Step 2: Fetching Instance Inventory..."
+gcloud compute instances list --format="json(id, machineType)" > instances.json
+
+echo "Step 3: Fetching Metrics and Merging (with Custom Type Parsing)..."
+FILTER='metric.type = "compute.googleapis.com/instance/cpu/utilization"'
+
+curl -s -G -H "Authorization: Bearer $TOKEN" \
+    "https://monitoring.googleapis.com/v3/projects/$PROJECT_ID/timeSeries" \
+    --data-urlencode "filter=$FILTER" \
+    --data-urlencode "interval.startTime=$START_TIME" \
+    --data-urlencode "interval.endTime=$END_TIME" \
+    --data-urlencode "aggregation.perSeriesAligner=ALIGN_MEAN" \
+    --data-urlencode "aggregation.alignmentPeriod=86400s" \
+| jq -r --slurpfile instances instances.json --slurpfile types machine_types.json '
+    # A. Build Standard Map
+    ($types[0] | map({key: .name, value: {cpu: .guestCpus, mem: .memoryMb}}) | from_entries) as $spec_map |
+
+    # B. Build Instance Map
+    ($instances[0] | map({key: .id, value: (.machineType | split("/") | last)}) | from_entries) as $inst_map |
+    
+    if .error then error("API Error: " + .error.message) else . end |
+    
+    ["Metric Name", "Instance ID", "Machine Type", "vCPUs", "Memory (GB)", "Avg Utilization", "Timestamp"],
+    
+    (.timeSeries[]? | 
+        .resource.labels.instance_id as $id |
+        ($inst_map[$id] // "Unknown") as $type |
+        
+        # --- Smart Parsing Logic ---
+        # 1. Try lookup in standard map
+        # 2. If null, check if it is a "custom" type and parse the string
+        #    Format is usually: [prefix]-custom-[CPUs]-[MemoryMB]
+        (
+            $spec_map[$type] // 
+            (
+                if ($type | contains("custom")) then 
+                    ($type | split("-")) as $parts | 
+                    { 
+                        cpu: ($parts[-2] | tonumber), 
+                        mem: ($parts[-1] | tonumber) 
+                    }
+                else 
+                    {cpu: "N/A", mem: 0} 
+                end
+            )
+        ) as $specs |
+        # ------------------------------------
+
+        [
+            .metric.type,
+            $id,
+            $type,
+            $specs.cpu,
+            ($specs.mem / 1024), 
+            (.points[0].value.doubleValue // .points[0].value.int64Value), 
+            .points[0].interval.endTime
+        ]
+    ) 
+    | @csv' > ops_audit_smart.csv
+
+echo "Success! Previewing Report (Custom Types Included):"
+echo "---------------------------------------------------"
+cat ops_audit_smart.csv | head -n 5
