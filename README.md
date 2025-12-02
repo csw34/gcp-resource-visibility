@@ -5,6 +5,20 @@ Based on our testing, here is the comprehensive review of the permissions requir
 
 We have narrowed this down to exactly 4 permissions. This is a highly restrictive "Least Privilege" set that grants read-only access to specific infrastructure metadata and metric history, without exposing code, storage, or other sensitive data.
 
+# Metrics
+1. The Essentials (Available on ALL VMs)
+- compute.googleapis.com/instance/cpu/utilization: (0.0 to 1.0) How busy is the processor?
+- compute.googleapis.com/instance/disk/read_bytes_count: Disk activity (Read).
+- compute.googleapis.com/instance/disk/write_bytes_count: Disk activity (Write).
+- compute.googleapis.com/instance/network/sent_bytes_count: Outbound traffic.
+- compute.googleapis.com/instance/network/received_bytes_count: Inbound traffic.
+
+2. The Ops Agent Metrics (Requires Agent)
+- agent.googleapis.com/memory/percent_used: Critical. The #1 reason to install the agent. The hypervisor cannot see inside RAM.
+- agent.googleapis.com/disk/percent_used: Distinct from I/O. This tells you if the disk is full (storage capacity), not just busy.
+
+
+
 # Least Privilege Permissions
 In addition to the permissions already specified in the custom ProsperOps Role, we need:
 
