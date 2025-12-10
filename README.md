@@ -24,10 +24,10 @@ In addition to the permissions already specified in the custom ProsperOps Role, 
 
 # Compute Engine
 compute.instances.list		
-/n Inventory: Used to fetch the list of VM IDs (12345...) and map them to their Machine Type names (e2-medium, custom-2-4096).
+- Inventory: Used to fetch the list of VM IDs (12345...) and map them to their Machine Type names (e2-medium, custom-2-4096).
 
 compute.machineTypes.list
-/n Specs Dictionary: Used to download the catalog of standard machine types (e.g., to know that n1-standard-4 has 15GB RAM).
+- Specs Dictionary: Used to download the catalog of standard machine types (e.g., to know that n1-standard-4 has 15GB RAM).
 
 # Cloud Monitoring
 monitoring.timeSeries.list		
