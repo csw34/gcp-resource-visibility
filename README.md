@@ -24,19 +24,20 @@ In addition to the permissions already specified in the custom ProsperOps Role, 
 
 # Compute Engine
 compute.instances.list		
-- Inventory: Used to fetch the list of VM IDs (12345...) and map them to their Machine Type names (e2-medium, custom-2-4096).
+- Used to fetch the list of VM IDs (12345...) and map them to their Machine Type names (e2-medium, custom-2-4096).
 
 compute.machineTypes.list
-- Specs Dictionary: Used to download the catalog of standard machine types (e.g., to know that n1-standard-4 has 15GB RAM).
+- Used to download the catalog of standard machine types (e.g., to know that n1-standard-4 has 15GB RAM).
+- Not necessary if we can pull a centralized view
 
 # Cloud Monitoring
 monitoring.timeSeries.list		
-The Data: Used by curl to fetch the actual CPU/Memory usage history points.
+- Used by curl to fetch the actual CPU/Memory usage history points.
 
 # Resource Manager
 resourcemanager.projects.get		
-Handshake: Required by client libraries and API calls to validate the project ID exists before running queries.
+- Required by client libraries and API calls to validate the project ID exists before running queries.
 
 # Misc Extra
 compute.instances.listEffectiveTags 
-Tagging Visibility: Separate need here but documenting for future reference.
+- Tagging Visibility
